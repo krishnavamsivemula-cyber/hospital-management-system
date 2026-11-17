@@ -34,7 +34,7 @@ public class DatabaseConnection {
                 throw new IllegalStateException(
                         "Configuration file 'db.properties' was not found in src/main/resources/.\n" +
                         "Please create 'src/main/resources/db.properties' with the following format:\n\n" +
-                        "db.url=jdbc:mysql://localhost:3306/hospital_db\n" +
+                        "db.url=jdbc:mysql://localhost:3306/hospital_management\n" +
                         "db.username=your_mysql_username\n" +
                         "db.password=your_mysql_password\n"
                 );
@@ -75,6 +75,36 @@ public class DatabaseConnection {
         }
 
         return DriverManager.getConnection(url, username, password);
+    }
+
+    /**
+     * Initializes missing database tables safely using schema.sql.
+     * Uses CREATE TABLE IF NOT EXISTS to guarantee no data loss.
+     */
+    public static void initializeDatabase() {
+        loadProperties();
+        try (Connection conn = getConnection();
+             InputStream in = DatabaseConnection.class.getClassLoader().getResourceAsStream("schema.sql")) {
+            if (in == null) {
+                System.err.println("Notice: 'schema.sql' not found in resources. Skipping table auto-creation.");
+                return;
+            }
+            String sql = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            // Strip single line comments
+            String cleanSql = sql.replaceAll("(?m)^\\s*--.*$", "");
+            String[] statements = cleanSql.split(";");
+            try (java.sql.Statement stmt = conn.createStatement()) {
+                for (String statement : statements) {
+                    String trimmed = statement.trim();
+                    if (!trimmed.isEmpty()) {
+                        stmt.execute(trimmed);
+                    }
+                }
+            }
+            System.out.println("✅ Database schema verified/initialized successfully.");
+        } catch (Exception e) {
+            System.err.println("⚠️ Database initialization notice: " + e.getMessage());
+        }
     }
 
     /**

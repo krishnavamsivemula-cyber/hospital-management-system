@@ -103,6 +103,13 @@ public class Patient {
         this.phone = phone;
     }
 
+    /**
+     * Formatted label for user-friendly display in UI components (like JComboBox).
+     */
+    public String getDisplayLabel() {
+        return "#" + patientId + " - " + name + (phone != null && !phone.isBlank() ? " (" + phone + ")" : "");
+    }
+
     // --- toString ---
 
     @Override
